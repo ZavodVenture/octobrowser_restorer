@@ -52,7 +52,7 @@ def worker(ws, wallet: Wallet, bar: Bar):
         sleep(3)
         driver.refresh()
 
-        WebDriverWait(driver, 10).until(ec.element_to_be_clickable((By.XPATH, '//*[@id="app-content"]/div/div[2]/div/div/div[3]/a'))).click()
+        WebDriverWait(driver, 30).until(ec.element_to_be_clickable((By.XPATH, '//*[@id="app-content"]/div/div[2]/div/div/div[3]/a'))).click()
 
         sleep(1)
 
@@ -70,7 +70,7 @@ def worker(ws, wallet: Wallet, bar: Bar):
         driver.find_element(By.XPATH, '//*[@id="password"]').send_keys(password)
         driver.find_element(By.XPATH, '//*[@id="confirm-password"]').send_keys(password)
 
-        WebDriverWait(driver, 10).until(ec.element_to_be_clickable((By.XPATH, '//*[@id="app-content"]/div/div[2]/div/div/div/form/button'))).click()
+        WebDriverWait(driver, 30).until(ec.element_to_be_clickable((By.XPATH, '//*[@id="app-content"]/div/div[2]/div/div/div/form/button'))).click()
 
         sleep(3)
 
