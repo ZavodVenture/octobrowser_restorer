@@ -4,6 +4,8 @@ from selenium.webdriver.chrome.options import Options
 from selenium.webdriver.common.by import By
 from selenium.webdriver.support.wait import WebDriverWait
 from selenium.webdriver.support import expected_conditions as ec
+from selenium.webdriver.chrome.service import Service
+from webdriver_manager.chrome import ChromeDriverManager
 from progress.bar import Bar
 from time import sleep
 from restore import config_object
@@ -43,9 +45,10 @@ document.body.appendChild(div);'''
 
 def worker(ws, wallet: Wallet, bar: Bar):
     try:
+        service = Service(ChromeDriverManager().install())
         options = Options()
         options.add_experimental_option("debuggerAddress", f'127.0.0.1:{ws}')
-        driver = webdriver.Chrome(options=options)
+        driver = webdriver.Chrome(options=options, service=service)
 
         driver.get('chrome-extension://nkbihfbeogaeaoehlefnkodbefgpgknn/home.html#unlock')
 
