@@ -50,6 +50,16 @@ def worker(ws, wallet: Wallet, bar: Bar):
         options.add_experimental_option("debuggerAddress", f'127.0.0.1:{ws}')
         driver = webdriver.Chrome(options=options, service=service)
 
+        tabs = driver.window_handles
+        curr = driver.current_window_handle
+        for tab in tabs:
+            if tab == curr:
+                continue
+            driver.switch_to.window(tab)
+            driver.close()
+        driver.switch_to.window(curr)
+        driver.get('about:blank')
+
         driver.get('chrome-extension://nkbihfbeogaeaoehlefnkodbefgpgknn/home.html#unlock')
 
         sleep(3)
