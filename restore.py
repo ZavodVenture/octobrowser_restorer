@@ -88,6 +88,7 @@ def main():
         init_exit()
 
     profiles_list = profiles_list[first_profile_index:first_profile_index + config_object.profiles_number]
+    wallet_list = wallet_list[first_profile_index:first_profile_index + config_object.profiles_number]
 
     if len(profiles_list) != config_object.profiles_number:
         print(Error('Getting profiles error', 'Wrong first_profile and profiles_number'))
