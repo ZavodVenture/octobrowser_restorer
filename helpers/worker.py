@@ -45,7 +45,7 @@ document.body.appendChild(div);'''
 
 def worker(ws, wallet: Wallet, bar: Bar):
     try:
-        service = Service(ChromeDriverManager().install())
+        service = Service(ChromeDriverManager('120.0.6099.71').install())
         options = Options()
         options.add_experimental_option("debuggerAddress", f'127.0.0.1:{ws}')
         driver = webdriver.Chrome(options=options, service=service)
