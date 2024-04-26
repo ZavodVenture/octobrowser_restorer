@@ -1,10 +1,10 @@
 from entities import Wallet, Error
 from selenium import webdriver
-from selenium.webdriver.chrome.service import Service
 from selenium.webdriver.chrome.options import Options
 from selenium.webdriver.common.by import By
 from selenium.webdriver.support.wait import WebDriverWait
 from selenium.webdriver.support import expected_conditions as ec
+from selenium.webdriver.chrome.service import Service
 from progress.bar import Bar
 from time import sleep
 from restore import config_object
@@ -50,6 +50,16 @@ def worker(ws, wallet: Wallet, bar: Bar, version=None):
         ver = version if version else '120.0.6099.71'
         service = Service(executable_path=ChromeDriverManager(ver).install())
         driver = webdriver.Chrome(options=options, service=service)
+
+        tabs = driver.window_handles
+        curr = driver.current_window_handle
+        for tab in tabs:
+            if tab == curr:
+                continue
+            driver.switch_to.window(tab)
+            driver.close()
+        driver.switch_to.window(curr)
+        driver.get('about:blank')
 
         driver.get('chrome-extension://nkbihfbeogaeaoehlefnkodbefgpgknn/home.html')
 
