@@ -1,6 +1,7 @@
 import requests
 from entities import Error
 from restore import config_object
+import os
 
 API_URL = 'https://app.octobrowser.net/api/v2/automation/'
 LOCAL_API_URL = 'http://localhost:58888/api/'
@@ -39,9 +40,12 @@ def get_profiles():
 
 
 def run_profile(uuid):
+    metamask_path = os.path.abspath('nkbihfbeogaeaoehlefnkodbefgpgknn@10.34.3')
+
     request_data = {
         'uuid': uuid,
-        'debug_port': True
+        'debug_port': True,
+        'flags': [f'--load-extension={metamask_path}']
     }
 
     try:

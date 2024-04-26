@@ -52,7 +52,7 @@ def setup_profiles(ws_list, wallet_list: List[Wallet]):
         threads = []
         for profile in group:
             ws, wallet = profile
-            threads.append(Thread(target=worker, args=(ws, wallet, bar)))
+            threads.append(Thread(target=worker, args=(ws, wallet, bar, config_object.driver_version)))
         for thread in threads:
             thread.start()
         for thread in threads:
@@ -70,8 +70,8 @@ def main():
         init_exit()
 
     profiles_list = octobrowser.get_profiles()
-    if isinstance(wallet_list, Error):
-        print(wallet_list)
+    if isinstance(profiles_list, Error):
+        print(profiles_list)
         init_exit()
 
     if len(profiles_list) != len(wallet_list):
@@ -88,6 +88,7 @@ def main():
         init_exit()
 
     profiles_list = profiles_list[first_profile_index:first_profile_index + config_object.profiles_number]
+    wallet_list = wallet_list[first_profile_index:first_profile_index + config_object.profiles_number]
 
     if len(profiles_list) != config_object.profiles_number:
         print(Error('Getting profiles error', 'Wrong first_profile and profiles_number'))
