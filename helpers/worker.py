@@ -43,6 +43,30 @@ document.body.appendChild(div);'''
     driver.execute_script(script)
 
 
+def get_exts(driver):
+    driver.get('chrome://extensions/')
+
+    sleep(5)
+
+    script = '''ext_manager = document.getElementsByTagName('extensions-manager')[0].shadowRoot;
+    item_list = ext_manager.getElementById('items-list').shadowRoot;
+    container = item_list.getElementById('container');
+    extension_list = container.getElementsByClassName('items-container')[1].getElementsByTagName('extensions-item');
+
+    var extensions = [];
+
+    for (i = 0; i < extension_list.length; i++) {
+        console.log(extension_list[i]);
+        name = extension_list[i].shadowRoot.getElementById('name').textContent;
+        id = extension_list[i].id;
+        extensions.push({'id': id, 'name': name});
+    }
+
+    return extensions;'''
+
+    return driver.execute_script(script)
+
+
 def worker(ws, wallet: Wallet, bar: Bar, version=None):
     try:
         options = Options()
@@ -61,7 +85,12 @@ def worker(ws, wallet: Wallet, bar: Bar, version=None):
         driver.switch_to.window(curr)
         driver.get('about:blank')
 
-        driver.get('chrome-extension://nkbihfbeogaeaoehlefnkodbefgpgknn/home.html')
+        try:
+            metamask_id = [i['id'] for i in get_exts(driver) if 'MetaMask' in i['name']][0]
+        except IndexError:
+            raise 'No metamask'
+
+        driver.get(f'chrome-extension://{metamask_id}/home.html')
 
         sleep(3)
         driver.refresh()
