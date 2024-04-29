@@ -40,7 +40,7 @@ def get_profiles():
 
 
 def run_profile(uuid):
-    metamask_path = os.path.abspath('nkbihfbeogaeaoehlefnkodbefgpgknn@10.34.3')
+    metamask_path = os.path.abspath('nkbihfbeogaeaoehlefnkodbefgpgknn@11.14.1')
 
     request_data = {
         'uuid': uuid,
