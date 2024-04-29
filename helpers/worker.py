@@ -67,6 +67,63 @@ def get_exts(driver):
     return driver.execute_script(script)
 
 
+def import_new(driver, wallet):
+    WebDriverWait(driver, 5).until(
+        ec.element_to_be_clickable((By.XPATH, '//*[@id="onboarding__terms-checkbox"]'))).click()
+    WebDriverWait(driver, 10).until(
+        ec.element_to_be_clickable((By.XPATH, '//button[@data-testid="onboarding-import-wallet"]'))).click()
+    WebDriverWait(driver, 1)
+    WebDriverWait(driver, 10).until(
+        ec.element_to_be_clickable((By.XPATH, '//button[@data-testid="metametrics-i-agree"]'))).click()
+
+    WebDriverWait(driver, 60).until(ec.presence_of_element_located((By.ID, 'import-srp__srp-word-0')))
+
+    seed = wallet.seed_phrase.split(' ')
+
+    if len(seed) != 12:
+        open_error_page(driver, Error('Seed length error', 'The length of one of the seed-phrases is not equal to 12'))
+        return
+
+    for j in range(12):
+        driver.find_element(By.ID, f'import-srp__srp-word-{j}').send_keys(seed[j])
+
+    WebDriverWait(driver, 10).until(
+        ec.element_to_be_clickable((By.XPATH, '//button[@data-testid="import-srp-confirm"]'))).click()
+
+    password = config_object.metamask_password if config_object.metamask_password else ''.join(
+        sample(ascii_letters + digits, 30))
+
+    WebDriverWait(driver, 20).until(
+        ec.presence_of_element_located((By.XPATH, '//input[@data-testid="create-password-new"]'))).send_keys(password)
+    WebDriverWait(driver, 20).until(
+        ec.presence_of_element_located(((By.XPATH, '//input[@data-testid="create-password-confirm"]')))).send_keys(
+        password)
+    WebDriverWait(driver, 20).until(
+        ec.presence_of_element_located((By.XPATH, '//input[@data-testid="create-password-terms"]'))).click()
+
+    WebDriverWait(driver, 20).until(
+        ec.element_to_be_clickable((By.XPATH, '//button[@data-testid="create-password-import"]'))).click()
+
+    driver.implicitly_wait(5)
+
+    while 1:
+        try:
+            sleep(5)
+            driver.find_element(By.XPATH, '//div[@class="loading-overlay"]')
+        except:
+            break
+        else:
+            driver.refresh()
+            continue
+
+    WebDriverWait(driver, 20).until(
+        ec.element_to_be_clickable((By.XPATH, '//button[@data-testid="onboarding-complete-done"]'))).click()
+    WebDriverWait(driver, 20).until(
+        ec.element_to_be_clickable((By.XPATH, '//button[@data-testid="pin-extension-next"]'))).click()
+    WebDriverWait(driver, 20).until(
+        ec.element_to_be_clickable((By.XPATH, '//button[@data-testid="pin-extension-done"]'))).click()
+
+
 def worker(ws, wallet: Wallet, bar: Bar, version=None):
     try:
         options = Options()
@@ -95,7 +152,11 @@ def worker(ws, wallet: Wallet, bar: Bar, version=None):
         sleep(3)
         driver.refresh()
 
-        WebDriverWait(driver, 30).until(ec.element_to_be_clickable((By.XPATH, '//*[@id="app-content"]/div/div[2]/div/div/div[3]/a'))).click()
+        try:
+            WebDriverWait(driver, 5).until(ec.element_to_be_clickable((By.XPATH, '//*[@id="app-content"]/div/div[2]/div/div/div[3]/a'))).click()
+        except:
+            import_new(driver, wallet)
+            return
 
         sleep(1)
 
