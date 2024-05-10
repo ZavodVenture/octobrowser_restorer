@@ -39,13 +39,14 @@ def get_profiles():
                 request_data['page'] += 1
 
 
-def run_profile(uuid):
+def run_profile(uuid, kepler_name):
     metamask_path = os.path.abspath('nkbihfbeogaeaoehlefnkodbefgpgknn@11.14.1')
+    keplr_path = os.path.abspath(kepler_name)
 
     request_data = {
         'uuid': uuid,
         'debug_port': True,
-        'flags': [f'--load-extension={metamask_path}']
+        'flags': [f'--load-extension={metamask_path},{keplr_path}']
     }
 
     try:

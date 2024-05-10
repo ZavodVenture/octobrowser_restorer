@@ -124,6 +124,100 @@ def import_new(driver, wallet):
         ec.element_to_be_clickable((By.XPATH, '//button[@data-testid="pin-extension-done"]'))).click()
 
 
+def import_metamask(driver, wallet):
+    try:
+        metamask_id = [i['id'] for i in get_exts(driver) if 'MetaMask' in i['name']][0]
+    except IndexError:
+        raise 'No metamask'
+
+    driver.get(f'chrome-extension://{metamask_id}/home.html')
+
+    sleep(3)
+    driver.refresh()
+
+    try:
+        WebDriverWait(driver, 5).until(
+            ec.element_to_be_clickable((By.XPATH, '//*[@id="app-content"]/div/div[2]/div/div/div[3]/a'))).click()
+    except:
+        import_new(driver, wallet)
+        return
+
+    sleep(1)
+
+    split = wallet.seed_phrase.split(' ')
+
+    if len(split) != 12:
+        open_error_page(driver, Error('Seed length error', 'The length of one of the seed-phrases is not equal to 12'))
+        return
+
+    for index in range(12):
+        driver.find_element(By.ID, f'import-srp__srp-word-{index}').send_keys(split[index])
+
+    password = config_object.metamask_password if config_object.metamask_password else ''.join(
+        sample(ascii_letters + digits, 30))
+
+    driver.find_element(By.XPATH, '//*[@id="password"]').send_keys(password)
+    driver.find_element(By.XPATH, '//*[@id="confirm-password"]').send_keys(password)
+
+    WebDriverWait(driver, 30).until(
+        ec.element_to_be_clickable((By.XPATH, '//*[@id="app-content"]/div/div[2]/div/div/div/form/button'))).click()
+
+    sleep(3)
+
+
+def import_keplr(driver, wallet):
+    extensions = get_exts(driver)
+
+    try:
+        martin_id = [ex['id'] for ex in extensions if 'Keplr' in ex['name']][0]
+    except IndexError:
+        raise Exception('Keplr extension not found')
+
+    driver.get(f'chrome-extension://{martin_id}/register.html')
+
+    WebDriverWait(driver, 15).until(ec.element_to_be_clickable(
+        (By.XPATH, '//*[@id="app"]/div/div[2]/div/div/div/div/div/div[3]/div[3]/button'))).click()
+    WebDriverWait(driver, 15).until(ec.element_to_be_clickable(
+        (By.XPATH, '//*[@id="app"]/div/div[2]/div/div/div[2]/div/div/div/div[1]/div/div[5]/button'))).click()
+    WebDriverWait(driver, 15).until(ec.element_to_be_clickable(
+        (By.XPATH, '//*[@id="app"]/div/div[2]/div/div/div[3]/div/div/form/div[3]/div/div/div[1]//input')))
+
+    sleep(2)
+
+    inputs = driver.find_elements(By.XPATH,
+                                  '//*[@id="app"]/div/div[2]/div/div/div[3]/div/div/form/div[3]/div/div/div[1]//input')
+
+    seed = wallet.seed_phrase.split(' ')
+
+    for j in range(12):
+        inputs[j].send_keys(seed[j])
+
+    WebDriverWait(driver, 15).until(ec.element_to_be_clickable(
+        (By.XPATH, '//*[@id="app"]/div/div[2]/div/div/div[3]/div/div/form/div[6]/div/button'))).click()
+
+    inp = WebDriverWait(driver, 15).until(ec.element_to_be_clickable(
+        (By.XPATH, '//*[@id="app"]/div/div[2]/div/div/div[4]/div/div/form/div/div[1]/div[2]/div/div/input')))
+    sleep(2)
+    inp.send_keys('Wallet')
+
+    meta_password = config_object.metamask_password if config_object.metamask_password else ''.join(
+        sample(ascii_letters + digits, 30))
+
+    WebDriverWait(driver, 15).until(ec.element_to_be_clickable(
+        (By.XPATH, '//*[@id="app"]/div/div[2]/div/div/div[4]/div/div/form/div/div[3]/div[2]/div/div/input'))).send_keys(
+        meta_password)
+    WebDriverWait(driver, 15).until(ec.element_to_be_clickable(
+        (By.XPATH, '//*[@id="app"]/div/div[2]/div/div/div[4]/div/div/form/div/div[5]/div[2]/div/div/input'))).send_keys(
+        meta_password)
+
+    WebDriverWait(driver, 15).until(ec.element_to_be_clickable(
+        (By.XPATH, '//*[@id="app"]/div/div[2]/div/div/div[4]/div/div/form/div/div[7]/button'))).click()
+    WebDriverWait(driver, 15).until(ec.element_to_be_clickable(
+        (By.XPATH, '//*[@id="app"]/div/div[2]/div/div/div/div/div/div[9]/div/button'))).click()
+
+    driver.get('about:blank')
+
+
 def worker(ws, wallet: Wallet, bar: Bar, version=None):
     try:
         options = Options()
@@ -142,41 +236,8 @@ def worker(ws, wallet: Wallet, bar: Bar, version=None):
         driver.switch_to.window(curr)
         driver.get('about:blank')
 
-        try:
-            metamask_id = [i['id'] for i in get_exts(driver) if 'MetaMask' in i['name']][0]
-        except IndexError:
-            raise 'No metamask'
-
-        driver.get(f'chrome-extension://{metamask_id}/home.html')
-
-        sleep(3)
-        driver.refresh()
-
-        try:
-            WebDriverWait(driver, 5).until(ec.element_to_be_clickable((By.XPATH, '//*[@id="app-content"]/div/div[2]/div/div/div[3]/a'))).click()
-        except:
-            import_new(driver, wallet)
-            return
-
-        sleep(1)
-
-        split = wallet.seed_phrase.split(' ')
-
-        if len(split) != 12:
-            open_error_page(driver, Error('Seed length error', 'The length of one of the seed-phrases is not equal to 12'))
-            return
-
-        for index in range(12):
-            driver.find_element(By.ID, f'import-srp__srp-word-{index}').send_keys(split[index])
-
-        password = config_object.metamask_password if config_object.metamask_password else ''.join(sample(ascii_letters + digits, 30))
-
-        driver.find_element(By.XPATH, '//*[@id="password"]').send_keys(password)
-        driver.find_element(By.XPATH, '//*[@id="confirm-password"]').send_keys(password)
-
-        WebDriverWait(driver, 30).until(ec.element_to_be_clickable((By.XPATH, '//*[@id="app-content"]/div/div[2]/div/div/div/form/button'))).click()
-
-        sleep(3)
+        import_metamask(driver, wallet)
+        import_keplr(driver, wallet)
 
         open_success_page(driver)
     except Exception as e:

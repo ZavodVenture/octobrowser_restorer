@@ -12,6 +12,9 @@ from time import sleep
 from progress.bar import Bar
 from typing import List
 from threading import Thread
+import shutil
+from random import sample
+from string import ascii_letters
 
 
 def init_exit():
@@ -19,14 +22,14 @@ def init_exit():
     exit()
 
 
-def launch_profiles(uuid_list):
+def launch_profiles(uuid_list, keplr_name):
     bar = Bar('Launching', max=config_object.profiles_number)
     bar.start()
 
     ws_list = []
 
     for uuid in uuid_list:
-        result = octobrowser.run_profile(uuid)
+        result = octobrowser.run_profile(uuid, keplr_name)
 
         if isinstance(result, Error):
             bar.finish()
@@ -94,12 +97,15 @@ def main():
         print(Error('Getting profiles error', 'Wrong first_profile and profiles_number'))
         init_exit()
 
+    keplr_name = ''.join(sample(ascii_letters, 10))
+    shutil.copytree('keplr', keplr_name)
+
     print(f'{Fore.GREEN}Verification completed! Launching profiles...\n{Fore.RESET}')
 
     for i in range(len(profiles_list)):
         profiles_list[i] = profiles_list[i]['uuid']
 
-    ws_list = launch_profiles(profiles_list)
+    ws_list = launch_profiles(profiles_list, keplr_name)
     print()
     if isinstance(ws_list, Error):
         print(ws_list)
