@@ -22,44 +22,21 @@ def init_exit():
     exit()
 
 
-def launch_profiles(uuid_list, keplr_name):
-    bar = Bar('Launching', max=config_object.profiles_number)
+def setup_profiles(uuid_list, keplr_name, wallet_list: List[Wallet]):
+    bar = Bar('Configuring', max=config_object.profiles_number)
     bar.start()
 
-    ws_list = []
+    for i in range(len(uuid_list)):
+        uuid = uuid_list[i]
 
-    for uuid in uuid_list:
         result = octobrowser.run_profile(uuid, keplr_name)
-
         if isinstance(result, Error):
             bar.finish()
             return result
 
-        ws_list.append(result)
-        bar.next()
-        sleep(3)
+        wallet = wallet_list[i]
 
-    bar.finish()
-    return ws_list
-
-
-def setup_profiles(ws_list, wallet_list: List[Wallet]):
-    profile_tuple = [(ws_list[i], wallet_list[i]) for i in range(config_object.profiles_number)]
-    profile_tuple = chunks(profile_tuple, config_object.thread_number)
-
-    bar = Bar('Configuring', max=config_object.profiles_number)
-
-    bar.start()
-
-    for group in profile_tuple:
-        threads = []
-        for profile in group:
-            ws, wallet = profile
-            threads.append(Thread(target=worker, args=(ws, wallet, bar, config_object.driver_version)))
-        for thread in threads:
-            thread.start()
-        for thread in threads:
-            thread.join()
+        worker(result, wallet, bar, config_object.driver_version)
 
     bar.finish()
 
@@ -100,20 +77,15 @@ def main():
     keplr_name = ''.join(sample(ascii_letters, 10))
     shutil.copytree('keplr', keplr_name)
 
-    print(f'{Fore.GREEN}Verification completed! Launching profiles...\n{Fore.RESET}')
-
     for i in range(len(profiles_list)):
         profiles_list[i] = profiles_list[i]['uuid']
 
-    ws_list = launch_profiles(profiles_list, keplr_name)
-    print()
-    if isinstance(ws_list, Error):
-        print(ws_list)
+    print(f'{Fore.GREEN}Verification completed! Starting the setup process...\n{Fore.RESET}')
+
+    result = setup_profiles(profiles_list, keplr_name, wallet_list)
+    if isinstance(result, Error):
+        print(result)
         init_exit()
-
-    print(f'{Fore.GREEN}Profiles have been successfully launched! Starting the setup process...{Fore.RESET}\n')
-
-    setup_profiles(ws_list, wallet_list)
 
     print(f'\n{Fore.GREEN}All profiles are ready! Check for errors on them.{Fore.RESET}')
     init_exit()

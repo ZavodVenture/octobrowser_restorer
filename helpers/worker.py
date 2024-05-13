@@ -11,6 +11,7 @@ from restore import config_object
 from random import sample
 from string import ascii_letters, digits
 from webdriver_manager.chrome import ChromeDriverManager
+import sys
 
 
 def open_success_page(driver: webdriver.Chrome):
@@ -166,56 +167,61 @@ def import_metamask(driver, wallet):
 
 
 def import_keplr(driver, wallet):
-    extensions = get_exts(driver)
-
     try:
-        martin_id = [ex['id'] for ex in extensions if 'Keplr' in ex['name']][0]
-    except IndexError:
-        raise Exception('Keplr extension not found')
+        extensions = get_exts(driver)
 
-    driver.get(f'chrome-extension://{martin_id}/register.html')
+        try:
+            martin_id = [ex['id'] for ex in extensions if 'Keplr' in ex['name']][0]
+        except IndexError:
+            raise Exception('Keplr extension not found')
 
-    WebDriverWait(driver, 15).until(ec.element_to_be_clickable(
-        (By.XPATH, '//*[@id="app"]/div/div[2]/div/div/div/div/div/div[3]/div[3]/button'))).click()
-    WebDriverWait(driver, 15).until(ec.element_to_be_clickable(
-        (By.XPATH, '//*[@id="app"]/div/div[2]/div/div/div[2]/div/div/div/div[1]/div/div[5]/button'))).click()
-    WebDriverWait(driver, 15).until(ec.element_to_be_clickable(
-        (By.XPATH, '//*[@id="app"]/div/div[2]/div/div/div[3]/div/div/form/div[3]/div/div/div[1]//input')))
+        driver.get(f'chrome-extension://{martin_id}/register.html')
 
-    sleep(2)
+        WebDriverWait(driver, 20).until(ec.element_to_be_clickable(
+            (By.XPATH, '//*[@id="app"]/div/div[2]/div/div/div/div/div/div[3]/div[3]/button'))).click()
+        WebDriverWait(driver, 20).until(ec.element_to_be_clickable(
+            (By.XPATH, '//*[@id="app"]/div/div[2]/div/div/div[2]/div/div/div/div[1]/div/div[5]/button'))).click()
+        WebDriverWait(driver, 20).until(ec.element_to_be_clickable(
+            (By.XPATH, '//*[@id="app"]/div/div[2]/div/div/div[3]/div/div/form/div[3]/div/div/div[1]//input')))
 
-    inputs = driver.find_elements(By.XPATH,
-                                  '//*[@id="app"]/div/div[2]/div/div/div[3]/div/div/form/div[3]/div/div/div[1]//input')
+        sleep(2)
 
-    seed = wallet.seed_phrase.split(' ')
+        inputs = driver.find_elements(By.XPATH,
+                                      '//*[@id="app"]/div/div[2]/div/div/div[3]/div/div/form/div[3]/div/div/div[1]//input')
 
-    for j in range(12):
-        inputs[j].send_keys(seed[j])
+        seed = wallet.seed_phrase.split(' ')
 
-    WebDriverWait(driver, 15).until(ec.element_to_be_clickable(
-        (By.XPATH, '//*[@id="app"]/div/div[2]/div/div/div[3]/div/div/form/div[6]/div/button'))).click()
+        for j in range(12):
+            inputs[j].send_keys(seed[j])
 
-    inp = WebDriverWait(driver, 15).until(ec.element_to_be_clickable(
-        (By.XPATH, '//*[@id="app"]/div/div[2]/div/div/div[4]/div/div/form/div/div[1]/div[2]/div/div/input')))
-    sleep(2)
-    inp.send_keys('Wallet')
+        WebDriverWait(driver, 20).until(ec.element_to_be_clickable(
+            (By.XPATH, '//*[@id="app"]/div/div[2]/div/div/div[3]/div/div/form/div[6]/div/button'))).click()
 
-    meta_password = config_object.metamask_password if config_object.metamask_password else ''.join(
-        sample(ascii_letters + digits, 30))
+        inp = WebDriverWait(driver, 20).until(ec.element_to_be_clickable(
+            (By.XPATH, '//*[@id="app"]/div/div[2]/div/div/div[4]/div/div/form/div/div[1]/div[2]/div/div/input')))
+        sleep(2)
+        inp.send_keys('Wallet')
 
-    WebDriverWait(driver, 15).until(ec.element_to_be_clickable(
-        (By.XPATH, '//*[@id="app"]/div/div[2]/div/div/div[4]/div/div/form/div/div[3]/div[2]/div/div/input'))).send_keys(
-        meta_password)
-    WebDriverWait(driver, 15).until(ec.element_to_be_clickable(
-        (By.XPATH, '//*[@id="app"]/div/div[2]/div/div/div[4]/div/div/form/div/div[5]/div[2]/div/div/input'))).send_keys(
-        meta_password)
+        meta_password = config_object.metamask_password if config_object.metamask_password else ''.join(
+            sample(ascii_letters + digits, 30))
 
-    WebDriverWait(driver, 15).until(ec.element_to_be_clickable(
-        (By.XPATH, '//*[@id="app"]/div/div[2]/div/div/div[4]/div/div/form/div/div[7]/button'))).click()
-    WebDriverWait(driver, 15).until(ec.element_to_be_clickable(
-        (By.XPATH, '//*[@id="app"]/div/div[2]/div/div/div/div/div/div[9]/div/button'))).click()
+        WebDriverWait(driver, 20).until(ec.element_to_be_clickable(
+            (By.XPATH, '//*[@id="app"]/div/div[2]/div/div/div[4]/div/div/form/div/div[3]/div[2]/div/div/input'))).send_keys(
+            meta_password)
+        WebDriverWait(driver, 20).until(ec.element_to_be_clickable(
+            (By.XPATH, '//*[@id="app"]/div/div[2]/div/div/div[4]/div/div/form/div/div[5]/div[2]/div/div/input'))).send_keys(
+            meta_password)
 
-    driver.get('about:blank')
+        WebDriverWait(driver, 20).until(ec.element_to_be_clickable(
+            (By.XPATH, '//*[@id="app"]/div/div[2]/div/div/div[4]/div/div/form/div/div[7]/button'))).click()
+        WebDriverWait(driver, 60).until(ec.element_to_be_clickable(
+            (By.XPATH, '//*[@id="app"]/div/div[2]/div/div/div/div/div/div[9]/div/button'))).click()
+
+        driver.get('about:blank')
+    except:
+        exc_type, exc_value, exc_traceback = sys.exc_info()
+        line_number = exc_traceback.tb_lineno
+        raise Exception(f'error on {line_number}')
 
 
 def worker(ws, wallet: Wallet, bar: Bar, version=None):
