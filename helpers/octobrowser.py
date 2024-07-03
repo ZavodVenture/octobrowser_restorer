@@ -40,7 +40,7 @@ def get_profiles():
 
 
 def run_profile(uuid, kepler_name):
-    metamask_path = os.path.abspath('nkbihfbeogaeaoehlefnkodbefgpgknn@11.14.1')
+    metamask_path = os.path.abspath('metamask')
     keplr_path = os.path.abspath(kepler_name)
 
     request_data = {
