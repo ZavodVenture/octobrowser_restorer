@@ -232,8 +232,12 @@ def worker(ws, wallet: Wallet, bar: Bar, version=None):
         service = Service(executable_path=ChromeDriverManager(ver).install())
         driver = webdriver.Chrome(options=options, service=service)
 
+        WebDriverWait(driver, 15).until_not(ec.number_of_windows_to_be(1))
+        sleep(5)
+
         tabs = driver.window_handles
         curr = driver.current_window_handle
+        driver.get('about:blank')
         for tab in tabs:
             if tab == curr:
                 continue
