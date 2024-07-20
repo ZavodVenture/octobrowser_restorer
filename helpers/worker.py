@@ -1,184 +1,204 @@
-from entities import Wallet, Error
 from selenium import webdriver
 from selenium.webdriver.chrome.options import Options
 from selenium.webdriver.common.by import By
 from selenium.webdriver.support.wait import WebDriverWait
 from selenium.webdriver.support import expected_conditions as ec
 from selenium.webdriver.chrome.service import Service
-from progress.bar import Bar
-from time import sleep
-from restore import config_object
+from selenium.common.exceptions import TimeoutException
+from entities import Wallet
 from random import sample
 from string import ascii_letters, digits
+from time import sleep
 from webdriver_manager.chrome import ChromeDriverManager
+from sys import exc_info
 
 
-def open_success_page(driver: webdriver.Chrome):
-    driver.get('about:blank')
-    script = '''let div = document.createElement("div");
-div.textContent = "Profile is ready!";
-div.style.fontSize = "36px";
-div.style.fontWeight = "bold";
-div.style.color = "green";
-div.style.position = "absolute";
-div.style.top = "50%";
-div.style.left = "50%";
-div.style.transform = "translate(-50%, -50%)";
-document.body.appendChild(div);'''
-    driver.execute_script(script)
-
-
-def open_error_page(driver: webdriver.Chrome, error):
-    driver.get('about:blank')
-    script = f'''let div = document.createElement("div");
-div.textContent = "An error occurred! {error}";
-div.style.fontSize = "36px";
-div.style.fontWeight = "bold";
-div.style.color = "red";
-div.style.position = "absolute";
-div.style.top = "50%";
-div.style.left = "50%";
-div.style.transform = "translate(-50%, -50%)";
-document.body.appendChild(div);'''
-    driver.execute_script(script)
-
-
-def get_exts(driver):
-    driver.get('chrome://extensions/')
-
-    sleep(5)
-
-    script = '''ext_manager = document.getElementsByTagName('extensions-manager')[0].shadowRoot;
-    item_list = ext_manager.getElementById('items-list').shadowRoot;
-    container = item_list.getElementById('container');
-    extension_list = container.getElementsByClassName('items-container')[1].getElementsByTagName('extensions-item');
-
-    var extensions = [];
-
-    for (i = 0; i < extension_list.length; i++) {
-        console.log(extension_list[i]);
-        name = extension_list[i].shadowRoot.getElementById('name').textContent;
-        id = extension_list[i].id;
-        extensions.push({'id': id, 'name': name});
-    }
-
-    return extensions;'''
-
-    return driver.execute_script(script)
-
-
-def import_new(driver, wallet):
-    WebDriverWait(driver, 5).until(
-        ec.element_to_be_clickable((By.XPATH, '//*[@id="onboarding__terms-checkbox"]'))).click()
-    WebDriverWait(driver, 10).until(
-        ec.element_to_be_clickable((By.XPATH, '//button[@data-testid="onboarding-import-wallet"]'))).click()
-    WebDriverWait(driver, 1)
-    WebDriverWait(driver, 10).until(
-        ec.element_to_be_clickable((By.XPATH, '//button[@data-testid="metametrics-i-agree"]'))).click()
-
-    WebDriverWait(driver, 60).until(ec.presence_of_element_located((By.ID, 'import-srp__srp-word-0')))
-
-    seed = wallet.seed_phrase.split(' ')
-
-    if len(seed) != 12:
-        open_error_page(driver, Error('Seed length error', 'The length of one of the seed-phrases is not equal to 12'))
-        return
-
-    for j in range(12):
-        driver.find_element(By.ID, f'import-srp__srp-word-{j}').send_keys(seed[j])
-
-    WebDriverWait(driver, 10).until(
-        ec.element_to_be_clickable((By.XPATH, '//button[@data-testid="import-srp-confirm"]'))).click()
-
-    password = config_object.metamask_password if config_object.metamask_password else ''.join(
-        sample(ascii_letters + digits, 30))
-
-    WebDriverWait(driver, 20).until(
-        ec.presence_of_element_located((By.XPATH, '//input[@data-testid="create-password-new"]'))).send_keys(password)
-    WebDriverWait(driver, 20).until(
-        ec.presence_of_element_located(((By.XPATH, '//input[@data-testid="create-password-confirm"]')))).send_keys(
-        password)
-    WebDriverWait(driver, 20).until(
-        ec.presence_of_element_located((By.XPATH, '//input[@data-testid="create-password-terms"]'))).click()
-
-    WebDriverWait(driver, 20).until(
-        ec.element_to_be_clickable((By.XPATH, '//button[@data-testid="create-password-import"]'))).click()
-
-    driver.implicitly_wait(5)
-
-    while 1:
-        try:
-            sleep(5)
-            driver.find_element(By.XPATH, '//div[@class="loading-overlay"]')
-        except:
-            break
-        else:
-            driver.refresh()
-            continue
-
-    WebDriverWait(driver, 20).until(
-        ec.element_to_be_clickable((By.XPATH, '//button[@data-testid="onboarding-complete-done"]'))).click()
-    WebDriverWait(driver, 20).until(
-        ec.element_to_be_clickable((By.XPATH, '//button[@data-testid="pin-extension-next"]'))).click()
-    WebDriverWait(driver, 20).until(
-        ec.element_to_be_clickable((By.XPATH, '//button[@data-testid="pin-extension-done"]'))).click()
-
-
-def worker(ws, wallet: Wallet, bar: Bar, version=None):
+def get_extensions(driver: webdriver.Chrome):
     try:
-        options = Options()
-        options.add_experimental_option("debuggerAddress", f'127.0.0.1:{ws}')
-        ver = version if version else '120.0.6099.71'
-        service = Service(executable_path=ChromeDriverManager(ver).install())
-        driver = webdriver.Chrome(options=options, service=service)
+        driver.get('chrome://extensions/')
 
-        tabs = driver.window_handles
-        curr = driver.current_window_handle
-        for tab in tabs:
-            if tab == curr:
-                continue
-            driver.switch_to.window(tab)
-            driver.close()
-        driver.switch_to.window(curr)
+        script = '''ext_manager = document.getElementsByTagName('extensions-manager')[0].shadowRoot;
+        item_list = ext_manager.getElementById('items-list').shadowRoot;
+        container = item_list.getElementById('container');
+        extension_list = container.getElementsByClassName('items-container')[1].getElementsByTagName('extensions-item');
+
+        var extensions = {};
+
+        for (i = 0; i < extension_list.length; i++) {
+            console.log(extension_list[i]);
+            name = extension_list[i].shadowRoot.getElementById('name').textContent;
+            id = extension_list[i].id;
+            extensions[name] = id;
+        }
+
+        return extensions;'''
+
+        return driver.execute_script(script)
+    except:
+        exc_type, exc_value, exc_tb = exc_info()
+        raise Exception(f'Can\'t get extensions list: exception at {exc_tb.tb_lineno}')
+
+
+# koshminvlad@gmail.com
+# 4SApW!j87MDPMWi
+
+
+def get_metamask_status(driver: webdriver.Chrome, metamask_id):
+    driver.get(f'chrome-extension://{metamask_id}/home.html')
+
+    try:
+        WebDriverWait(driver, 10).until(ec.url_changes(f'chrome-extension://{metamask_id}/home.html'))
+    except TimeoutException:
         driver.get('about:blank')
+        return 'unlocked'
 
-        try:
-            metamask_id = [i['id'] for i in get_exts(driver) if 'MetaMask' in i['name']][0]
-        except IndexError:
-            raise 'No metamask'
+    current_url = driver.current_url
 
-        driver.get(f'chrome-extension://{metamask_id}/home.html')
+    if 'unlock' in current_url:
+        return 'locked'
+    elif 'onboarding' in current_url:
+        return 'new'
+    else:
+        raise Exception('Can\'t receive metamask state')
 
-        sleep(3)
-        driver.refresh()
 
-        try:
-            WebDriverWait(driver, 5).until(ec.element_to_be_clickable((By.XPATH, '//*[@id="app-content"]/div/div[2]/div/div/div[3]/a'))).click()
-        except:
-            import_new(driver, wallet)
-            return
+def import_metamask(driver: webdriver.Chrome, wallet: Wallet, password, metamask_id):
+    try:
+        driver.get(f'chrome-extension://{metamask_id}/home.html#onboarding/welcome')
+
+        WebDriverWait(driver, 15).until(
+            ec.element_to_be_clickable((By.XPATH, '//input[@data-testid="onboarding-terms-checkbox"]'))).click()
+        WebDriverWait(driver, 15).until(
+            ec.element_to_be_clickable((By.XPATH, '//button[@data-testid="onboarding-import-wallet"]'))).click()
+
+        WebDriverWait(driver, 15).until(
+            ec.element_to_be_clickable((By.XPATH, '//button[@data-testid="metametrics-no-thanks"]'))).click()
+
+        WebDriverWait(driver, 15).until(
+            ec.element_to_be_clickable((By.XPATH, '//input[@data-testid="import-srp__srp-word-0"]')))
+
+        seed = wallet.seed_phrase.split(' ')
+
+        for i in range(12):
+            driver.find_element(By.XPATH, f'//input[@data-testid="import-srp__srp-word-{i}"]').send_keys(seed[i])
+
+        WebDriverWait(driver, 15).until(
+            ec.element_to_be_clickable((By.XPATH, '//button[@data-testid="import-srp-confirm"]'))).click()
+
+        WebDriverWait(driver, 15).until(ec.element_to_be_clickable((By.XPATH, '//input[@data-testid="create-password-new"]'))).send_keys(password)
+        WebDriverWait(driver, 15).until(
+            ec.element_to_be_clickable((By.XPATH, '//input[@data-testid="create-password-confirm"]'))).send_keys(password)
+        WebDriverWait(driver, 15).until(
+            ec.element_to_be_clickable((By.XPATH, '//input[@data-testid="create-password-terms"]'))).click()
+        WebDriverWait(driver, 15).until(
+            ec.element_to_be_clickable((By.XPATH, '//button[@data-testid="create-password-import"]'))).click()
+
+        WebDriverWait(driver, 15).until(
+            ec.element_to_be_clickable((By.XPATH, '//button[@data-testid="onboarding-complete-done"]'))).click()
+        WebDriverWait(driver, 15).until(
+            ec.element_to_be_clickable((By.XPATH, '//button[@data-testid="pin-extension-next"]'))).click()
+        WebDriverWait(driver, 15).until(
+            ec.element_to_be_clickable((By.XPATH, '//button[@data-testid="pin-extension-done"]'))).click()
 
         sleep(1)
 
-        split = wallet.seed_phrase.split(' ')
+        driver.get('about:blank')
+    except Exception as e:
+        exc_type, exc_value, exc_tb = exc_info()
+        raise Exception(f'Can\'t import metamask: exception at {exc_tb.tb_lineno}')
 
-        if len(split) != 12:
-            open_error_page(driver, Error('Seed length error', 'The length of one of the seed-phrases is not equal to 12'))
+
+def restore_metamask(driver: webdriver.Chrome, wallet: Wallet, password, metamask_id):
+    try:
+        driver.get(f'chrome-extension://{metamask_id}/home.html#onboarding/unlock')
+
+        WebDriverWait(driver, 15).until(ec.element_to_be_clickable((By.XPATH, '//a[@class="button btn-link unlock-page__link"]'))).click()
+
+        WebDriverWait(driver, 15).until(
+            ec.element_to_be_clickable((By.XPATH, '//input[@data-testid="import-srp__srp-word-0"]')))
+
+        seed = wallet.seed_phrase.split(' ')
+
+        for i in range(12):
+            driver.find_element(By.XPATH, f'//input[@data-testid="import-srp__srp-word-{i}"]').send_keys(seed[i])
+
+        url_before = driver.current_url
+
+        WebDriverWait(driver, 15).until(
+            ec.element_to_be_clickable((By.XPATH, '//input[@data-testid="create-vault-password"]'))).send_keys(password)
+        WebDriverWait(driver, 15).until(
+            ec.element_to_be_clickable((By.XPATH, '//input[@data-testid="create-vault-confirm-password"]'))).send_keys(
+            password)
+        WebDriverWait(driver, 15).until(
+            ec.element_to_be_clickable((By.XPATH, '//button[@data-testid="create-new-vault-submit-button"]'))).click()
+
+        WebDriverWait(driver, 60).until(ec.url_changes(url_before))
+
+        driver.get('about:blank')
+    except:
+        exc_type, exc_value, exc_tb = exc_info()
+        raise Exception(f'Can\'t restore metamask: exception at {exc_tb.tb_lineno}')
+
+
+def close_all_tabs(driver: webdriver.Chrome):
+    try:
+        try:
+            WebDriverWait(driver, 15).until_not(ec.number_of_windows_to_be(1))
+        except:
+            pass
+
+        windows = driver.window_handles
+        for window in windows:
+            driver.switch_to.window(window)
+            if 'offscreen.html' in driver.current_url:
+                driver.close()
+        driver.switch_to.window(driver.window_handles[0])
+
+        driver.switch_to.new_window()
+        current = driver.current_window_handle
+        windows = driver.window_handles
+        windows.remove(current)
+
+        for window in windows:
+            driver.switch_to.window(window)
+            driver.close()
+
+        driver.switch_to.window(current)
+        driver.get('about:blank')
+    except Exception as e:
+        exc_type, exc_value, exc_tb = exc_info()
+        raise Exception(f'Can\'t close tabs: {type(e)} at {exc_tb.tb_lineno}')
+
+
+def worker(ws, wallet: Wallet, bar, password, version):
+    try:
+        options = Options()
+        options.add_experimental_option("debuggerAddress", f'127.0.0.1:{ws}')
+        service = Service(executable_path=ChromeDriverManager(version).install())
+        driver = webdriver.Chrome(options=options, service=service)
+
+        try:
+            driver.maximize_window()
+        except:
+            pass
+
+        close_all_tabs(driver)
+
+        metamask_id = get_extensions(driver).get('MetaMask')
+        if not metamask_id:
+            raise Exception('Can\'t find metamask id')
+
+        password = password if password else ''.join(sample(ascii_letters + digits, 15))
+
+        metamask_state = get_metamask_status(driver, metamask_id)
+
+        if metamask_state == 'unlocked':
+            driver.get('about:blank')
             return
-
-        for index in range(12):
-            driver.find_element(By.ID, f'import-srp__srp-word-{index}').send_keys(split[index])
-
-        password = config_object.metamask_password if config_object.metamask_password else ''.join(sample(ascii_letters + digits, 30))
-
-        driver.find_element(By.XPATH, '//*[@id="password"]').send_keys(password)
-        driver.find_element(By.XPATH, '//*[@id="confirm-password"]').send_keys(password)
-
-        WebDriverWait(driver, 30).until(ec.element_to_be_clickable((By.XPATH, '//*[@id="app-content"]/div/div[2]/div/div/div/form/button'))).click()
-
-        sleep(3)
-
-        open_success_page(driver)
+        elif metamask_state == 'locked':
+            restore_metamask(driver, wallet, password, metamask_id)
+        elif metamask_state == 'new':
+            import_metamask(driver, wallet, password, metamask_id)
     except Exception as e:
         print(e)
     finally:

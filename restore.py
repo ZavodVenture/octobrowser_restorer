@@ -6,6 +6,7 @@ config.read('config.ini')
 config_object = Config(**config['settings'])
 
 import colorama
+from webdriver_manager.chrome import ChromeDriverManager
 from colorama import Fore
 from helpers import reader, octobrowser, chunks, worker
 from time import sleep
@@ -44,6 +45,8 @@ def setup_profiles(ws_list, wallet_list: List[Wallet]):
     profile_tuple = [(ws_list[i], wallet_list[i]) for i in range(config_object.profiles_number)]
     profile_tuple = chunks(profile_tuple, config_object.thread_number)
 
+    ChromeDriverManager(config_object.driver_version).install()
+
     bar = Bar('Configuring', max=config_object.profiles_number)
 
     bar.start()
@@ -52,7 +55,7 @@ def setup_profiles(ws_list, wallet_list: List[Wallet]):
         threads = []
         for profile in group:
             ws, wallet = profile
-            threads.append(Thread(target=worker, args=(ws, wallet, bar, config_object.driver_version)))
+            threads.append(Thread(target=worker, args=(ws, wallet, bar, config_object.metamask_password, config_object.driver_version)))
         for thread in threads:
             thread.start()
         for thread in threads:
